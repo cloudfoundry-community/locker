@@ -31,6 +31,11 @@
 			"Rev": "56b76bdf51f7708750eac80fa38b952bb9f32639"
 		},
 		{
+			"ImportPath": "github.com/voxelbrain/goptions",
+			"Comment": "2.5.10",
+			"Rev": "68583de33d9209ba795a0a334dad27418e4c18f5"
+		},
+		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "db8e4de5b2d6653f66aea53094624468caad15d2"
 		},
