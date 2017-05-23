@@ -1,0 +1,19 @@
+---
+meta:
+  name: locker
+  target: sw
+  url: https://ci.starkandwayne.com
+  initial_version: 0.1.1
+  aws:
+    access_key: (( vault "secret/aws/cfcommunity:access" ))
+    secret_key: (( vault "secret/aws/cfcommunity:secret" ))
+
+  github:
+    owner: cloudfoundry-community
+    repo: locker
+    private_key:  (( vault "secret/pipelines/locker/github:private" ))
+    access_token: (( vault "secret/pipelines/locker/github:token" ))
+
+  slack:
+    webhook: (( vault "secret/pipelines/locker/slack:webhook" ))
+    channel: '#botspam'
