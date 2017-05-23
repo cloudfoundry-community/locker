@@ -5,12 +5,12 @@ import (
 	"os"
 )
 
-type LockOperation int
+type LockOperation string
 
 const (
-	LockOp LockOperation = iota
-	UnlockOp
-	ListOp
+	LockOp   LockOperation = "Lock"
+	UnlockOp               = "Unlock"
+	ListOp                 = "ListLocks"
 )
 
 type LockStatus int
