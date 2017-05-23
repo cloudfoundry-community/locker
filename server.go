@@ -35,7 +35,7 @@ type LockResponse struct {
 }
 
 type LockInput struct {
-	Lock string `json: "lock"`
+	Lock string `json:"lock"`
 }
 
 func lockServer(lockRequests chan LockRequest, lockConfig string) {
