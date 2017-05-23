@@ -9,9 +9,31 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
+	"github.com/voxelbrain/goptions"
 )
 
+var Version string
+
 func main() {
+	var options struct {
+		Help    bool `goptions:"-h, --help"`
+		Version bool `goptions:"-v, --version"`
+	}
+
+	goptions.ParseAndFail(&options)
+	if options.Help {
+		goptions.PrintHelp()
+		os.Exit(0)
+	}
+	if options.Version {
+		if Version != "" {
+			fmt.Fprintf(os.Stderr, "locker v%s\n", Version)
+		} else {
+			fmt.Fprintf(os.Stderr, "locker (development build)\n")
+		}
+		os.Exit(0)
+	}
+
 	lockChan := make(chan LockRequest)
 	lockConfig := os.Getenv("LOCKER_CONFIG")
 	if lockConfig == "" {
