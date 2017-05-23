@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 
@@ -56,9 +57,19 @@ func main() {
 		fmt.Fprintf(os.Stderr, "AUTH_USER specified, but no AUTH_PASS was provided. Bailing out.\n")
 		os.Exit(1)
 	}
-
 	if authUser == "" && authPass != "" {
 		fmt.Fprintf(os.Stderr, "AUTH_PASS specified, but no AUTH_USER was provided. Bailing out.\n")
+		os.Exit(1)
+	}
+
+	certFile := os.Getenv("SSL_CERT")
+	keyFile := os.Getenv("SSL_KEY")
+	if certFile == "" && keyFile != "" {
+		fmt.Fprintf(os.Stderr, "SSL_KEY specified, but no SSL_CERT was provided. Bailing out.\n")
+		os.Exit(1)
+	}
+	if certFile != "" && keyFile == "" {
+		fmt.Fprintf(os.Stderr, "SSL_CERT specified, but no SSL_KEY was provided. Bailing out.\n")
 		os.Exit(1)
 	}
 
@@ -160,7 +171,17 @@ func main() {
 	if port == "" {
 		port = "3000"
 	}
-	router.Run(":" + port)
+	if certFile == "" && keyFile == "" {
+		err := http.ListenAndServe(":"+port, router)
+		fmt.Fprintf(os.Stderr, "Error running webserver: %s\n", err)
+		os.Exit(1)
+	} else if certFile != "" && keyFile != "" {
+		err := http.ListenAndServeTLS(":"+port, certFile, keyFile, router)
+		fmt.Fprintf(os.Stderr, "Error running webserver: %s\n", err)
+		os.Exit(1)
+	}
+	fmt.Fprintf(os.Stderr, "Unable to choose TLS or non-TLS web server. Bailing out\n")
+	os.Exit(0)
 }
 
 func AuthHandler(user, password string) gin.HandlerFunc {
