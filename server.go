@@ -82,7 +82,7 @@ func lockServer(lockRequests chan LockRequest, lockConfig string) {
 			}
 			if current.Key != req.Lock.Key {
 				res.Status = Error
-				res.Error = fmt.Errorf("Locking failed. Should be locked by '%s', but found '%s'", req.Lock.Key, current)
+				res.Error = fmt.Errorf("Locking failed. Should be locked by '%s', but found '%s'", req.Lock.Key, current.Key)
 				req.Response <- res
 				continue
 			}
