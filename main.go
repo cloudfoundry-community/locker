@@ -107,21 +107,24 @@ func main() {
 		pool := c.Param("pool")
 		input := LockInput{}
 		c.BindJSON(&input)
-		if input.Lock == "" {
-			c.Render(400, render.JSON{Data: map[string]string{"error": "No lock specified in request body"}})
+		if input.Key == "" {
+			c.Render(400, render.JSON{Data: map[string]string{"error": "No key specified in request body"}})
 			return
+		}
+		if input.Requestor == "" {
+			input.Requestor = input.Key
 		}
 
 		lr := LockRequest{
 			Command:  LockOp,
 			Pool:     pool,
-			Lock:     input.Lock,
+			Lock:     input,
 			Response: rc,
 		}
 		lockChan <- lr
 		res := <-rc
 		if res.Error != nil {
-			fmt.Fprintf(os.Stderr, "Error locking %s with %s: %s\n", pool, input.Lock, res.Error)
+			fmt.Fprintf(os.Stderr, "Error locking %s with %s: %s\n", pool, input.Key, res.Error)
 			c.Render(423, render.JSON{Data: map[string]string{"error": res.Error.Error()}})
 			return
 		}
@@ -138,15 +141,18 @@ func main() {
 		pool := c.Param("pool")
 		input := LockInput{}
 		c.BindJSON(&input)
-		if input.Lock == "" {
+		if input.Key == "" {
 			c.Render(400, render.JSON{Data: map[string]string{"error": "No lock specified in request body"}})
 			return
+		}
+		if input.Requestor == "" {
+			input.Requestor = input.Key
 		}
 
 		lr := LockRequest{
 			Command:  UnlockOp,
 			Pool:     pool,
-			Lock:     input.Lock,
+			Lock:     input,
 			Response: rc,
 		}
 

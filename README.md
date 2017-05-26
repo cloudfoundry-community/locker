@@ -9,7 +9,12 @@ This project is similar to the [pool-resource](https://github.com/concourse/pool
 1) It uses a webserver with file-backed persistence for the locks. This isn't
    terribly scalable, but since it's handling locks for Concourse pipelines,
    it isn't anticipated to have an enormous traffic load.
-2) Pools + lock-names do not need to be pre-defined in order to be used
+2) Locks and Keys do not need to be pre-defined in order to be used
+3) You may lock a Lock multiple times with the same Key. If this is done,
+   you must unlock once for each lock in place on the key.
+4) Each lock request may specify who it is, along with the key. If not specified,
+   the value of the key will be used as the identifier. This allows users to lock
+   a resource that can be shared by node-a, node-b, and node-c, but not node-e.
 
 # How do I use it?
 
@@ -24,36 +29,45 @@ This project is similar to the [pool-resource](https://github.com/concourse/pool
 
   Returns a JSON formatted list of locks + who owns them currently
 
-* `PUT /lock/<pool-name>`
+* `PUT /lock/<lock-name>`
 
-  Content: `{"lock":"item-requesting-the-lock"}`
+  Content: `{"key":"key-to-lock-with", "lock_by": "identifier-of-lock-requestor"}`
 
-  Issues a lock on `pool-name` to the value of the `lock` attribute in the JSON payload of the request.
+  Issues a lock on `lock-name` keyed with `key` attribute in the JSON payload of the request.
   If the lock was already taken, it will immediately return a 423 error, and the client should back-off +
-  re-try at a sane interval until the lock is obtained.
+  re-try at a sane interval until the lock is obtained. The `lock_by` field is optional, and used to
+  identify the item requesting the lock. If not specified, it will default to the value of `key`.
+
+  `locked_by` allows you to lock a lock multiple times with a single key, by multiple items. Different
+  keys should be specified by items that need exclusivity on the lock. If three things can run simultaneously,
+  but the fourth item must be exclusive, use two keys, and one key should have three `locked_by` requestors.
 
   Returns 200 on success, 423 on locking failure
 
   Example to lock `prod-deployments` with `prod-cloudfoundry`:
 
   ```
-  curl -X PUT -d '{"lock":"prod-cloudfoundry"}' http://locker-ip:port/lock/prod-deployments
+  curl -X PUT -d '{"key":"prod-cloudfoundry"}' http://locker-ip:port/lock/prod-deployments
+  # or to explicitly set the lock requestor
+  curl -X PUT -d '{"key":"prod-cloudfoundry", "lock_by": "my-deployment"}' http://locker-ip:port/lock/prod-deployments
   ```
 
-* `DELETE /lock/<pool-name>`
+* `DELETE /lock/<lock-name>`
 
-  Content: `{"lock":"item-requesting-unlock"}`
+  Content: `{"key":"key-to-unlock-with"}`
 
-  Issues an unlock request on `pool-name` based on the value of the `lock` attribute in the JSON payload
-  of the request. If the lock on `pool-name` is not currently held by `item-requesting-unlock`, the
-  unlock is disallowed. If the lock is currently not held by anyone, returns 200.
+  Issues an unlock request on `lock-name` using the `key` attribute in the JSON payload as the unlock key.
+  If the lock on `lock-name` is not currently keyed by `key-to-unlock-with`, the
+  unlock is disallowed. If the lock is currently not held by anyone, always returns 200.
 
   Returns 200 on success, 423 on failure.
 
-  Example to unlock `prod-deployments` previously locked by `prod-cloudfoundry`:
+  Example to unlock `prod-deployments` previously locked with `prod-cloudfoundry`:
 
   ```
-  curl -X DELETE -d '{"lock":"prod-cloudfoundry"}' http://locker-ip:port/lock/prod-deployments
+  curl -X DELETE -d '{"key":"prod-cloudfoundry"}' http://locker-ip:port/lock/prod-deployments
+  # or to unlock my-deployment's lock using `prod-cloudfoundry`
+  curl -X DELETE -d '{"key":"prod-cloudfoundry","locked_by":"my-deployment"}' http://locker-ip:port/lock/prod-deployments
   ```
 
 ## Authentication

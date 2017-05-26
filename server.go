@@ -25,7 +25,7 @@ const (
 type LockRequest struct {
 	Command  LockOperation
 	Pool     string
-	Lock     string
+	Lock     LockInput
 	Response chan LockResponse
 }
 type LockResponse struct {
@@ -35,11 +35,16 @@ type LockResponse struct {
 }
 
 type LockInput struct {
-	Lock string `json:"lock"`
+	Key       string `json:"key"`
+	Requestor string `json:"requestor"`
 }
 
 func lockServer(lockRequests chan LockRequest, lockConfig string) {
 	locker := Locker{LockConfig: lockConfig}
+	_, err := locker.GetLocks()
+	if err != nil {
+		panic(fmt.Sprintf("Unable to load lock config from '%s': %s", lockConfig, err))
+	}
 	for req := range lockRequests {
 		if req.Command == ListOp {
 			locks, err := locker.GetLocks()
@@ -61,7 +66,7 @@ func lockServer(lockRequests chan LockRequest, lockConfig string) {
 				continue
 			}
 
-			err = locker.Lock(req.Pool, req.Lock)
+			err = locker.Lock(req.Pool, req.Lock.Key, req.Lock.Requestor)
 			if err != nil {
 				res.Status = Error
 				res.Error = err
@@ -75,22 +80,22 @@ func lockServer(lockRequests chan LockRequest, lockConfig string) {
 				req.Response <- res
 				continue
 			}
-			if current != req.Lock {
+			if current.Key != req.Lock.Key {
 				res.Status = Error
-				res.Error = fmt.Errorf("Locking failed. Should be locked by %s, but found %s", req.Lock, current)
+				res.Error = fmt.Errorf("Locking failed. Should be locked by '%s', but found '%s'", req.Lock.Key, current)
 				req.Response <- res
 				continue
 			}
 
 			res.Status = Locked
 			res.Message = map[string]string{
-				"response": fmt.Sprintf("lock for %s acquired by %s", req.Pool, req.Lock),
+				"response": fmt.Sprintf("Lock for '%s' acquired by '%s' using key '%s'", req.Pool, req.Lock.Requestor, req.Lock.Key),
 			}
 			req.Response <- res
 		} else if req.Command == UnlockOp {
 			res := LockResponse{}
 
-			err := locker.Unlock(req.Pool, req.Lock)
+			err := locker.Unlock(req.Pool, req.Lock.Key, req.Lock.Requestor)
 			if err != nil {
 				res.Status = Error
 				res.Error = err
@@ -99,7 +104,7 @@ func lockServer(lockRequests chan LockRequest, lockConfig string) {
 			}
 
 			res.Status = Unlocked
-			res.Message = map[string]string{"response": fmt.Sprintf("Lock released on %s", req.Pool)}
+			res.Message = map[string]string{"response": fmt.Sprintf("'%s' released a lock on on '%s'", req.Lock.Requestor, req.Pool)}
 			req.Response <- res
 		} else {
 			fmt.Fprintf(os.Stderr, "Invalid lock request '%s'", req.Command)
