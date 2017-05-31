@@ -75,7 +75,7 @@ var _ = Describe("Locker", func() {
 			Expect(lock.Key).Should(Equal(""))
 			Expect(lock.LockedBy).Should(Equal(map[string]int{"myKey": 0}))
 		})
-		It("decrements requestor when the key is correct", func() {
+		It("fully unlocks a key/requestor on a single unlock call", func() {
 			err := locker.Lock("myLock", "myKey", "george")
 			Expect(err).ShouldNot(HaveOccurred())
 			err = locker.Lock("myLock", "myKey", "george")
@@ -88,7 +88,7 @@ var _ = Describe("Locker", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			lock, err = locker.GetLock("myLock")
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(lock.LockedBy["george"]).Should(Equal(1))
+			Expect(lock.LockedBy["george"]).Should(Equal(0))
 		})
 		It("does not error when decrementing a requestor that is not currently holding a lock", func() {
 			err := locker.Lock("myLock", "myKey", "george")
@@ -128,17 +128,15 @@ var _ = Describe("Locker", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(locker.Unlock("myLock", "wrongKey", "george")).ShouldNot(Succeed())
 		})
-		It("is able to unlock multiple requestors multiple times, if they all have the correct key", func() {
+		It("unlocking one of multiple requestors does not remove the key frmo the lock", func() {
 			Expect(locker.Lock("myLock", "myKey", "george")).Should(Succeed())
 			Expect(locker.Lock("myLock", "myKey", "george")).Should(Succeed())
 			Expect(locker.Lock("myLock", "myKey", "jane")).Should(Succeed())
 			Expect(locker.Lock("myLock", "myKey", "jane")).Should(Succeed())
 			Expect(locker.Unlock("myLock", "myKey", "george")).Should(Succeed())
-			Expect(locker.Unlock("myLock", "myKey", "jane")).Should(Succeed())
-			Expect(locker.Unlock("myLock", "myKey", "jane")).Should(Succeed())
 			lock, err := locker.GetLock("myLock")
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(lock.LockedBy).Should(Equal(map[string]int{"jane": 0, "george": 1}))
+			Expect(lock.LockedBy).Should(Equal(map[string]int{"jane": 2, "george": 0}))
 		})
 	})
 	Context("when loading", func() {

@@ -90,12 +90,7 @@ func (l Locker) Unlock(pool, key, requestor string) error {
 		return fmt.Errorf("Attempt to unlock '%s' with '%s' by '%s' thwarted. Currently held by someone else", pool, key, requestor)
 	}
 
-	// decrement the lock for this requestor
-	lock.LockedBy[requestor] -= 1
-	if lock.LockedBy[requestor] <= 0 {
-		lock.LockedBy[requestor] = 0
-	}
-
+	lock.LockedBy[requestor] = 0
 	totalLocks := 0
 	for _, locks := range lock.LockedBy {
 		totalLocks += locks
