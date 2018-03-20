@@ -67,7 +67,7 @@ This project is similar to the [pool-resource](https://github.com/concourse/pool
   ```
   curl -X DELETE -d '{"key":"prod-cloudfoundry"}' http://locker-ip:port/lock/prod-deployments
   # or to unlock my-deployment's lock using `prod-cloudfoundry`
-  curl -X DELETE -d '{"key":"prod-cloudfoundry","locked_by":"my-deployment"}' http://locker-ip:port/lock/prod-deployments
+  curl -X DELETE -d '{"key":"prod-cloudfoundry","requestor":"my-deployment"}' http://locker-ip:port/lock/prod-deployments
   ```
 
 ## Authentication
